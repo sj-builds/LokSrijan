@@ -36,6 +36,11 @@ class Settings(BaseSettings):
     # Stored as a plain string so a malformed env var cannot crash startup.
     cors_origins: str = "http://localhost:3000,http://127.0.0.1:3000"
 
+    # ── Authentication ────────────────────────────────────────
+    jwt_secret_key: str = "change-this-in-production"
+    jwt_algorithm: str = "HS256"
+    access_token_expire_minutes: int = 60
+
     # ── AI provider (RESERVED — not used yet) ────────────────
     # Wired in a later task via the AIService abstraction.
     # Left empty so no provider is implied or required today.
