@@ -5,7 +5,7 @@ from fastapi import APIRouter
 from app.modules.auth.routes import router as auth_router
 from app.modules.challenges.routes import router as challenges_router
 from app.modules.projects.routes import router as projects_router
-
+from app.modules.intelligence.routes import router as intelligence_router
 
 api_router = APIRouter()
 
@@ -26,4 +26,10 @@ api_router.include_router(
     projects_router,
     prefix="/projects",
     tags=["projects"],
+)
+
+api_router.include_router(
+    intelligence_router,
+    prefix="/intelligence",
+    tags=["intelligence"],
 )
