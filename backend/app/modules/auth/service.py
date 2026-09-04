@@ -32,7 +32,7 @@ def register_user(db: Session, user_data: UserRegister) -> User:
         name=user_data.name,
         email=email,
         hashed_password=hash_password(user_data.password),
-        role=user_data.role,
+        role="citizen",
     )
 
     db.add(user)

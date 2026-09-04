@@ -7,6 +7,7 @@ from app.core.database import get_db
 from app.models.challenge import Challenge
 from app.models.user import User
 from app.modules.auth.dependencies import get_current_user
+from app.modules.auth.permissions import require_roles
 from app.modules.challenges.service import (
     create_challenge,
     delete_challenge,
@@ -33,7 +34,7 @@ router = APIRouter()
 )
 def create_new_challenge(
     challenge_data: ChallengeCreate,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_roles("government")),
     db: Session = Depends(get_db),
 ) -> Challenge:
     """Create a new societal challenge."""
@@ -158,7 +159,7 @@ def delete_existing_challenge(
 def update_challenge_status(
     challenge_id: int,
     status_data: ChallengeStatusUpdate,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_roles("government")),
     db: Session = Depends(get_db),
 ) -> Challenge:
     """Update the lifecycle status of a challenge."""
