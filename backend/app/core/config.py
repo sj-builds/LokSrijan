@@ -42,10 +42,16 @@ class Settings(BaseSettings):
     access_token_expire_minutes: int = 60
 
     # ── AI provider (RESERVED — not used yet) ────────────────
-    # Wired in a later task via the AIService abstraction.
-    # Left empty so no provider is implied or required today.
     ai_provider: str = ""
     ai_api_key: str = ""
+
+    # AI models
+    ai_text_model: str = "gemini-3.6-flash"
+    ai_embedding_model: str = "gemini-embedding-001"
+
+    # AI thresholds
+    ai_confidence_threshold: float = 0.70
+    similarity_threshold: float = 0.80
 
     @property
     def cors_origin_list(self) -> list[str]:
