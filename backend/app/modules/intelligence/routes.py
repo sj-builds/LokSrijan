@@ -33,15 +33,16 @@ def analyze_problem_endpoint(
         request.description,
     )
 
+
 @router.post(
     "/similarity",
     response_model=SimilarityResponse,
 )
-def compare_problem_similarity(
+def calculate_similarity_endpoint(
     request: SimilarityRequest,
     current_user: User = Depends(get_current_user),
 ) -> SimilarityResponse:
-    """Compare two problem descriptions for similarity."""
+    """Compare two problem descriptions."""
 
     return calculate_similarity(
         text_a=request.text_a,
