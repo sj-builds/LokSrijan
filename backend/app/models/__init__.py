@@ -21,6 +21,7 @@ from app.models.challenge import Challenge
 from app.models.project import Project
 from app.models.user import User
 from app.models.institution import Institution
+from app.models.impact import Impact
 
 __all__ = [
     "Base",
@@ -28,4 +29,5 @@ __all__ = [
     "Challenge",
     "Project",
     "Institution",
+    "Impact",
 ]

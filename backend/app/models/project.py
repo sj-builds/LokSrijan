@@ -72,3 +72,8 @@ class Project(Base):
 
     challenge = relationship("Challenge")
     creator = relationship("User")
+    impact = relationship(
+        "Impact",
+        back_populates="project",
+        uselist=False,
+    )

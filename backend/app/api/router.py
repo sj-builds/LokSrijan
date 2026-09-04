@@ -7,6 +7,8 @@ from app.modules.challenges.routes import router as challenges_router
 from app.modules.projects.routes import router as projects_router
 from app.modules.intelligence.routes import router as intelligence_router
 from app.modules.institutions.routes import router as institutions_router
+from app.modules.impact.routes import router as impact_router
+from app.modules.analytics.routes import router as analytics_router
 
 api_router = APIRouter()
 
@@ -39,4 +41,16 @@ api_router.include_router(
     institutions_router,
     prefix="/institutions",
     tags=["institutions"],
+)
+
+api_router.include_router(
+    impact_router,
+    prefix="/impact",
+    tags=["impact"],
+)
+
+api_router.include_router(
+    analytics_router,
+    prefix="/analytics",
+    tags=["analytics"],
 )
