@@ -20,11 +20,12 @@ from app.core.database import Base
 from app.models.challenge import Challenge
 from app.models.project import Project
 from app.models.user import User
-
+from app.models.institution import Institution
 
 __all__ = [
     "Base",
     "User",
     "Challenge",
     "Project",
+    "Institution",
 ]
