@@ -70,3 +70,22 @@ class SimilarityResponse(BaseModel):
     similarity_score: float
 
     is_possible_duplicate: bool
+
+class DuplicateChallenge(BaseModel):
+    """Possible duplicate challenge."""
+
+    challenge_id: int
+    title: str
+    similarity_score: float
+
+
+class ChallengeIntelligenceResponse(BaseModel):
+    """AI intelligence result for an existing challenge."""
+
+    challenge_id: int
+
+    analysis: ProblemAnalysisResponse
+
+    possible_duplicates: list[DuplicateChallenge]
+
+    duplicate_count: int

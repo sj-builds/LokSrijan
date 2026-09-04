@@ -10,11 +10,17 @@ from google import genai
 
 from difflib import SequenceMatcher
 from app.core.config import settings
+
+from sqlalchemy import select
+from sqlalchemy.orm import Session
+
+from app.models.challenge import Challenge
 from app.schemas.intelligence import (
+    ChallengeIntelligenceResponse,
+    DuplicateChallenge,
     ProblemAnalysisResponse,
     SimilarityResponse,
 )
-
 
 logger = logging.getLogger(__name__)
 
@@ -216,4 +222,53 @@ def calculate_similarity(
             similarity_score
             >= settings.similarity_threshold
         ),
+    )
+
+def analyze_challenge_intelligence(
+    db: Session,
+    challenge: Challenge,
+) -> ChallengeIntelligenceResponse:
+    """Analyze an existing challenge and find possible duplicates."""
+
+    analysis = analyze_problem(
+        challenge.description
+    )
+
+    statement = select(Challenge).where(
+        Challenge.id != challenge.id
+    )
+
+    other_challenges = list(
+        db.scalars(statement).all()
+    )
+
+    duplicates: list[DuplicateChallenge] = []
+
+    for other in other_challenges:
+        similarity = calculate_similarity(
+            challenge.description,
+            other.description,
+        )
+
+        if similarity.is_possible_duplicate:
+            duplicates.append(
+                DuplicateChallenge(
+                    challenge_id=other.id,
+                    title=other.title,
+                    similarity_score=(
+                        similarity.similarity_score
+                    ),
+                )
+            )
+
+    duplicates.sort(
+        key=lambda item: item.similarity_score,
+        reverse=True,
+    )
+
+    return ChallengeIntelligenceResponse(
+        challenge_id=challenge.id,
+        analysis=analysis,
+        possible_duplicates=duplicates,
+        duplicate_count=len(duplicates),
     )
