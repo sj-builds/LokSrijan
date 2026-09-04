@@ -14,12 +14,17 @@ Nothing is implemented yet. Planned entities:
     User · Organization · Challenge · Evidence · Location · ChallengeCluster
 """
 
+"""SQLAlchemy ORM models."""
+
 from app.core.database import Base
 from app.models.challenge import Challenge
+from app.models.project import Project
 from app.models.user import User
+
 
 __all__ = [
     "Base",
     "User",
     "Challenge",
+    "Project",
 ]
