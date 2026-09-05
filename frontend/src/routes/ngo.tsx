@@ -23,7 +23,7 @@ export const Route = createFileRoute("/ngo")({
 
 const NAV = [
   { to: "/ngo", label: "Verification queue" },
-  { to: "/problems", label: "Problem explorer" },
+  { to: "/challenges", label: "Problem explorer" },
 ];
 
 function NgoDashboard() {

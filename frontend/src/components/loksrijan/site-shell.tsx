@@ -5,7 +5,7 @@ import { Wordmark, CivicRule } from "./brand";
 import { cn } from "@/lib/utils";
 
 const NAV = [
-  { to: "/problems", label: "Problems" },
+  { to: "/challenges", label: "Problems" },
   { to: "/how-it-works", label: "How it works" },
   { to: "/join", label: "Roles" },
 ] as const;

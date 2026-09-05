@@ -98,6 +98,7 @@ function AuthPage() {
           name: name.trim(),
           email: email.trim(),
           password,
+          role: role.key as "citizen" | "government" | "university" | "ngo" | "industry",
         });
 
         // Store session with real backend user details and JWT
@@ -212,7 +213,7 @@ function AuthPage() {
 
             <p className={`label-caps mt-8 ${accentText}`}>{role.label} access</p>
             <h1 className="mt-2 text-3xl font-bold text-foreground">
-              {mode === "login" ? role.authTitle : "Create a Citizen Account"}
+              {mode === "login" ? role.authTitle : `Create a ${role.label} Account`}
             </h1>
             <p className="mt-3 text-sm text-muted-foreground lg:hidden">{role.authNote}</p>
 
@@ -251,10 +252,8 @@ function AuthPage() {
             {/* Role context notice for registration */}
             {mode === "register" && (
               <div className="mt-4 rounded-sm border border-border bg-card p-3 text-xs text-muted-foreground leading-relaxed">
-                <strong className="text-foreground">Note:</strong> Public registration creates a{" "}
-                <span className="font-semibold text-foreground">Citizen</span> account. Organization
-                accounts (Government, University, NGO, Industry) are provisioned by platform
-                administrators.
+                <strong className="text-foreground">Creating a {role.label} account.</strong>{" "}
+                Your account will be registered with the selected workspace role.
               </div>
             )}
 
@@ -368,7 +367,7 @@ function AuthPage() {
                   <span>
                     {mode === "login"
                       ? `Sign in to ${role.label} workspace`
-                      : "Create citizen account"}
+                      : `Create ${role.label} account`}
                   </span>
                 )}
               </button>
@@ -385,7 +384,7 @@ function AuthPage() {
                       }}
                       className="font-medium text-foreground underline underline-offset-4 hover:text-saffron"
                     >
-                      Register as a Citizen
+                      Register as a {role.label}
                     </button>
                   </p>
                 ) : (

@@ -1,8 +1,12 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
 import { ArrowRight, ShieldCheck, Hammer, Landmark, Megaphone } from "lucide-react";
+
 import { SiteShell } from "@/components/loksrijan/site-shell";
-import { ProblemCard } from "@/components/loksrijan/problem-explorer";
-import { PROBLEMS, ROLES } from "@/lib/loksrijan-data";
+import { ChallengeCard } from "@/components/loksrijan/problem-explorer";
+import { ROLES } from "@/lib/loksrijan-data";
+import { challengeService } from "@/services/challenge.service";
+import { analyticsService } from "@/services/analytics.service";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -48,7 +52,17 @@ const STEPS = [
 ];
 
 function Home() {
-  const featured = PROBLEMS.slice(0, 4);
+  const challengesQuery = useQuery({
+    queryKey: ["challenges"],
+    queryFn: () => challengeService.listChallenges(),
+  });
+
+  const analyticsQuery = useQuery({
+    queryKey: ["analytics", "overview"],
+    queryFn: () => analyticsService.getOverview(),
+  });
+
+  const featured = challengesQuery.data?.slice(0, 4) ?? [];
 
   return (
     <SiteShell>
@@ -56,7 +70,8 @@ function Home() {
         <div className="mx-auto grid w-full max-w-6xl gap-10 px-5 py-16 lg:grid-cols-[1.25fr_1fr] lg:py-24">
           <div>
             <span className="label-caps inline-flex items-center gap-2 border border-border bg-card px-3 py-1.5 text-muted-foreground">
-              <span className="size-1.5 bg-field" /> 6 states · 1,842 problems filed
+              <span className="size-1.5 bg-field" />
+              {analyticsQuery.data? `${analyticsQuery.data.total_challenges} challenges tracked`: "Live civic challenges"}
             </span>
             <h1 className="mt-6 text-4xl font-bold leading-[1.05] tracking-tight text-foreground sm:text-5xl lg:text-6xl">
               The problem is local.
@@ -76,7 +91,7 @@ function Home() {
                 Choose your role <ArrowRight className="size-4" />
               </Link>
               <Link
-                to="/problems"
+                to="/challenges"
                 className="text-sm font-medium text-foreground underline underline-offset-4"
               >
                 Browse live problems
@@ -86,12 +101,24 @@ function Home() {
 
           <div className="grid grid-cols-2 gap-px self-start border border-border bg-border">
             {[
-              { k: "1,842", v: "problems filed by citizens" },
-              { k: "1,109", v: "verified by NGOs on the ground" },
-              { k: "417", v: "student teams building now" },
-              { k: "63", v: "solutions adopted by departments" },
+              {
+                k: analyticsQuery.data?.total_challenges ?? "—",
+                v: "challenges tracked",
+              },
+              {
+                k: analyticsQuery.data?.validated_challenges ?? "—",
+                v: "validated challenges",
+              },
+              {
+                k: analyticsQuery.data?.total_projects ?? "—",
+                v: "projects created",
+              },
+              {
+                k: analyticsQuery.data?.total_beneficiaries ?? "—",
+                v: "people reached",
+              },
             ].map((s) => (
-              <div key={s.k} className="bg-card p-6">
+              <div key={s.v} className="bg-card p-6">
                 <p className="font-display text-3xl font-bold tracking-tight text-foreground">
                   {s.k}
                 </p>
@@ -125,16 +152,48 @@ function Home() {
           <div className="flex items-end justify-between gap-4">
             <h2 className="text-3xl font-semibold text-foreground">Open right now</h2>
             <Link
-              to="/problems"
+              to="/challenges"
               className="text-sm font-medium text-foreground underline underline-offset-4"
             >
               All problems
             </Link>
           </div>
-          <div className="mt-8 grid gap-4 md:grid-cols-2">
-            {featured.map((p) => (
-              <ProblemCard key={p.id} problem={p} />
-            ))}
+          <div className="mt-8">
+            {challengesQuery.isPending ? (
+              <div className="grid gap-4 md:grid-cols-2">
+                {[1, 2, 3, 4].map((item) => (
+                  <div
+                    key={item}
+                    className="h-56 animate-pulse border border-border bg-card"
+                  />
+                ))}
+              </div>
+            ) : challengesQuery.isError ? (
+              <div className="border border-dashed border-border bg-card p-8 text-center">
+                <p className="text-sm text-muted-foreground">
+                  Unable to load current challenges.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => challengesQuery.refetch()}
+                  className="mt-3 text-sm font-medium text-saffron hover:underline"
+                >
+                  Try again
+                </button>
+              </div>
+            ) : featured.length === 0 ? (
+              <div className="border border-dashed border-border bg-card p-8 text-center">
+                <p className="text-sm text-muted-foreground">
+                  No challenges are currently available.
+                </p>
+              </div>
+            ) : (
+              <div className="grid gap-4 md:grid-cols-2">
+                {featured.map((challenge) => (
+                  <ChallengeCard key={challenge.id} challenge={challenge} />
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </section>

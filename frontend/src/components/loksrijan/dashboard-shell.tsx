@@ -18,6 +18,7 @@ export function DashboardShell({
   title,
   subtitle,
   primaryAction,
+  allowedRoles,
   children,
 }: {
   role: RoleKey;
@@ -25,6 +26,7 @@ export function DashboardShell({
   title: string;
   subtitle: string;
   primaryAction?: { label: string; onClick?: () => void; to?: string };
+  allowedRoles?: BackendRole[];
   children: React.ReactNode;
 }) {
   const {
@@ -131,7 +133,12 @@ export function DashboardShell({
   }
 
   // 4. Authenticated, but has wrong role for this dashboard
-  if (userRole !== effectiveTargetRole) {
+  const isRoleAllowed =
+    userRole === effectiveTargetRole ||
+    (userRole !== undefined &&
+      allowedRoles?.includes(userRole as BackendRole));
+
+  if (!isRoleAllowed) {
     const activeRoleMeta = userRole ? getRoleMetadata(userRole) : undefined;
     const activeDashboard = userRole ? getDashboardForRole(userRole) : "/join";
 

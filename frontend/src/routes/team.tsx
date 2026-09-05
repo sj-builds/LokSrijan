@@ -25,7 +25,7 @@ export const Route = createFileRoute("/team")({
 
 const NAV = [
   { to: "/team", label: "Our build" },
-  { to: "/problems", label: "Problem explorer" },
+  { to: "/challenges", label: "Problem explorer" },
 ];
 
 const INITIAL_TASKS = [

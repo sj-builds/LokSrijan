@@ -18,10 +18,14 @@ import { Route as JoinRouteImport } from './routes/join'
 import { Route as NgoRouteImport } from './routes/ngo'
 import { Route as TeamRouteImport } from './routes/team'
 import { Route as AuthRoleRouteImport } from './routes/auth.$role'
+import { Route as ChallengesIndexRouteImport } from './routes/challenges.index'
+import { Route as ChallengesIdRouteImport } from './routes/challenges.$id'
 import { Route as ProblemsIndexRouteImport } from './routes/problems.index'
 import { Route as ProblemsProblemIdRouteImport } from './routes/problems.$problemId'
 import { Route as UniversityIndexRouteImport } from './routes/university.index'
 import { Route as UniversityTeamsRouteImport } from './routes/university.teams'
+import { Route as UniversityProjectsIdRouteImport } from './routes/university.projects.$id'
+import { Route as UniversityProjectsNewRouteImport } from './routes/university.projects.new'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -68,6 +72,16 @@ const AuthRoleRoute = AuthRoleRouteImport.update({
   path: '/auth/$role',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ChallengesIndexRoute = ChallengesIndexRouteImport.update({
+  id: '/challenges/',
+  path: '/challenges/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ChallengesIdRoute = ChallengesIdRouteImport.update({
+  id: '/challenges/$id',
+  path: '/challenges/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ProblemsIndexRoute = ProblemsIndexRouteImport.update({
   id: '/problems/',
   path: '/problems/',
@@ -88,6 +102,16 @@ const UniversityTeamsRoute = UniversityTeamsRouteImport.update({
   path: '/university/teams',
   getParentRoute: () => rootRouteImport,
 } as any)
+const UniversityProjectsIdRoute = UniversityProjectsIdRouteImport.update({
+  id: '/university/projects/$id',
+  path: '/university/projects/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const UniversityProjectsNewRoute = UniversityProjectsNewRouteImport.update({
+  id: '/university/projects/new',
+  path: '/university/projects/new',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -99,10 +123,14 @@ export interface FileRoutesByFullPath {
   '/ngo': typeof NgoRoute
   '/team': typeof TeamRoute
   '/auth/$role': typeof AuthRoleRoute
+  '/challenges/$id': typeof ChallengesIdRoute
   '/problems/$problemId': typeof ProblemsProblemIdRoute
   '/university/teams': typeof UniversityTeamsRoute
+  '/challenges/': typeof ChallengesIndexRoute
   '/problems/': typeof ProblemsIndexRoute
   '/university/': typeof UniversityIndexRoute
+  '/university/projects/$id': typeof UniversityProjectsIdRoute
+  '/university/projects/new': typeof UniversityProjectsNewRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -114,10 +142,14 @@ export interface FileRoutesByTo {
   '/ngo': typeof NgoRoute
   '/team': typeof TeamRoute
   '/auth/$role': typeof AuthRoleRoute
+  '/challenges/$id': typeof ChallengesIdRoute
   '/problems/$problemId': typeof ProblemsProblemIdRoute
   '/university/teams': typeof UniversityTeamsRoute
+  '/challenges': typeof ChallengesIndexRoute
   '/problems': typeof ProblemsIndexRoute
   '/university': typeof UniversityIndexRoute
+  '/university/projects/$id': typeof UniversityProjectsIdRoute
+  '/university/projects/new': typeof UniversityProjectsNewRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -130,10 +162,14 @@ export interface FileRoutesById {
   '/ngo': typeof NgoRoute
   '/team': typeof TeamRoute
   '/auth/$role': typeof AuthRoleRoute
+  '/challenges/$id': typeof ChallengesIdRoute
   '/problems/$problemId': typeof ProblemsProblemIdRoute
   '/university/teams': typeof UniversityTeamsRoute
+  '/challenges/': typeof ChallengesIndexRoute
   '/problems/': typeof ProblemsIndexRoute
   '/university/': typeof UniversityIndexRoute
+  '/university/projects/$id': typeof UniversityProjectsIdRoute
+  '/university/projects/new': typeof UniversityProjectsNewRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -147,10 +183,14 @@ export interface FileRouteTypes {
     | '/ngo'
     | '/team'
     | '/auth/$role'
+    | '/challenges/$id'
     | '/problems/$problemId'
     | '/university/teams'
+    | '/challenges/'
     | '/problems/'
     | '/university/'
+    | '/university/projects/$id'
+    | '/university/projects/new'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -162,10 +202,14 @@ export interface FileRouteTypes {
     | '/ngo'
     | '/team'
     | '/auth/$role'
+    | '/challenges/$id'
     | '/problems/$problemId'
     | '/university/teams'
+    | '/challenges'
     | '/problems'
     | '/university'
+    | '/university/projects/$id'
+    | '/university/projects/new'
   id:
     | '__root__'
     | '/'
@@ -177,10 +221,14 @@ export interface FileRouteTypes {
     | '/ngo'
     | '/team'
     | '/auth/$role'
+    | '/challenges/$id'
     | '/problems/$problemId'
     | '/university/teams'
+    | '/challenges/'
     | '/problems/'
     | '/university/'
+    | '/university/projects/$id'
+    | '/university/projects/new'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -193,10 +241,14 @@ export interface RootRouteChildren {
   NgoRoute: typeof NgoRoute
   TeamRoute: typeof TeamRoute
   AuthRoleRoute: typeof AuthRoleRoute
+  ChallengesIdRoute: typeof ChallengesIdRoute
   ProblemsProblemIdRoute: typeof ProblemsProblemIdRoute
   UniversityTeamsRoute: typeof UniversityTeamsRoute
+  ChallengesIndexRoute: typeof ChallengesIndexRoute
   ProblemsIndexRoute: typeof ProblemsIndexRoute
   UniversityIndexRoute: typeof UniversityIndexRoute
+  UniversityProjectsIdRoute: typeof UniversityProjectsIdRoute
+  UniversityProjectsNewRoute: typeof UniversityProjectsNewRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -264,6 +316,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthRoleRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/challenges/': {
+      id: '/challenges/'
+      path: '/challenges'
+      fullPath: '/challenges/'
+      preLoaderRoute: typeof ChallengesIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/challenges/$id': {
+      id: '/challenges/$id'
+      path: '/challenges/$id'
+      fullPath: '/challenges/$id'
+      preLoaderRoute: typeof ChallengesIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/problems/': {
       id: '/problems/'
       path: '/problems'
@@ -292,6 +358,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof UniversityTeamsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/university/projects/$id': {
+      id: '/university/projects/$id'
+      path: '/university/projects/$id'
+      fullPath: '/university/projects/$id'
+      preLoaderRoute: typeof UniversityProjectsIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/university/projects/new': {
+      id: '/university/projects/new'
+      path: '/university/projects/new'
+      fullPath: '/university/projects/new'
+      preLoaderRoute: typeof UniversityProjectsNewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -305,10 +385,14 @@ const rootRouteChildren: RootRouteChildren = {
   NgoRoute: NgoRoute,
   TeamRoute: TeamRoute,
   AuthRoleRoute: AuthRoleRoute,
+  ChallengesIdRoute: ChallengesIdRoute,
   ProblemsProblemIdRoute: ProblemsProblemIdRoute,
   UniversityTeamsRoute: UniversityTeamsRoute,
+  ChallengesIndexRoute: ChallengesIndexRoute,
   ProblemsIndexRoute: ProblemsIndexRoute,
   UniversityIndexRoute: UniversityIndexRoute,
+  UniversityProjectsIdRoute: UniversityProjectsIdRoute,
+  UniversityProjectsNewRoute: UniversityProjectsNewRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

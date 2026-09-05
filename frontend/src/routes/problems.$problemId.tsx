@@ -39,7 +39,7 @@ function ProblemNotFound() {
           It may have been merged into another report.
         </p>
         <Link
-          to="/problems"
+          to="/challenges"
           className="mt-6 inline-flex h-11 items-center rounded-sm bg-saffron px-6 text-sm font-medium text-primary-foreground"
         >
           Back to all problems
@@ -57,7 +57,7 @@ function ProblemDetail() {
     <SiteShell>
       <article className="mx-auto w-full max-w-6xl px-5 py-12">
         <Link
-          to="/problems"
+          to="/challenges"
           className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
         >
           <ArrowLeft className="size-4" /> All problems
