@@ -9,6 +9,7 @@ from app.modules.intelligence.routes import router as intelligence_router
 from app.modules.institutions.routes import router as institutions_router
 from app.modules.impact.routes import router as impact_router
 from app.modules.analytics.routes import router as analytics_router
+from app.modules.teams.routes import router as teams_router
 
 api_router = APIRouter()
 
@@ -53,4 +54,10 @@ api_router.include_router(
     analytics_router,
     prefix="/analytics",
     tags=["analytics"],
+)
+
+api_router.include_router(
+    teams_router,
+    prefix="/teams",
+    tags=["teams"],
 )
