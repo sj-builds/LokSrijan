@@ -192,7 +192,7 @@ function UniversityDashboard() {
         <StatTile
           label="Validated challenges"
           value={String(validatedChallenges.length)}
-          note="Ready for solution development"
+          note="Challenges ready for team formation"
         />
 
         <StatTile
@@ -351,11 +351,11 @@ function UniversityDashboard() {
       <div className="mt-10 flex items-end justify-between gap-4">
         <div>
           <h2 className="text-lg font-semibold text-foreground">
-            Validated challenges
+            Challenges ready for team formation
           </h2>
 
           <p className="mt-1 text-sm text-muted-foreground">
-            Verified civic problems available for solution development.
+            Government-validated problems available for student teams.
           </p>
         </div>
 
@@ -374,11 +374,10 @@ function UniversityDashboard() {
               <ChallengeCard challenge={challenge} />
 
               <Link
-                to="/university/projects/new"
-                search={{ challengeId: challenge.id }}
+                to="/university/teams"
                 className="mt-2 block border border-border bg-card px-4 py-2.5 text-center text-sm font-medium text-foreground transition-colors hover:border-saffron hover:text-saffron"
               >
-                Start project for this challenge →
+                Form a team for this challenge →
               </Link>
             </div>
           ))}

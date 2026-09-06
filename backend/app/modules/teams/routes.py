@@ -5,6 +5,8 @@ from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.modules.auth.dependencies import get_current_user
+from app.models.challenge import Challenge
+from app.modules.challenges.state_machine import can_transition
 from app.modules.teams import service
 from app.schemas.team import TeamCreate, TeamResponse, TeamUpdate
 
@@ -47,19 +49,59 @@ def create_team(
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user),
 ):
-    """Create a student team."""
+    """Create a student team and form the linked challenge team."""
+
     if current_user.role != "university":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Only university users can create teams",
         )
 
-    return service.create_team(
+    # If a challenge is selected, it must be validated first.
+    if team_data.challenge_id is not None:
+        challenge = (
+            db.query(Challenge)
+            .filter(Challenge.id == team_data.challenge_id)
+            .first()
+        )
+
+        if challenge is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Challenge not found",
+            )
+
+        if challenge.status != "VALIDATED":
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=(
+                    "A team can only be formed for a validated challenge"
+                ),
+            )
+
+        if not can_transition(
+            challenge.status,
+            "TEAM_FORMED",
+        ):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid challenge transition to TEAM_FORMED",
+            )
+
+    team = service.create_team(
         db=db,
         team_data=team_data,
         created_by=current_user.id,
     )
 
+    # Move the linked challenge into TEAM_FORMED.
+    if team_data.challenge_id is not None:
+        challenge.status = "TEAM_FORMED"
+
+        db.commit()
+        db.refresh(team)
+
+    return team
 
 @router.patch("/{team_id}", response_model=TeamResponse)
 def update_team(

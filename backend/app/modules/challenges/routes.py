@@ -34,7 +34,7 @@ router = APIRouter()
 )
 def create_new_challenge(
     challenge_data: ChallengeCreate,
-    current_user: User = Depends(require_roles("government")),
+    current_user: User = Depends(require_roles("citizen", "government")),
     db: Session = Depends(get_db),
 ) -> Challenge:
     """Create a new societal challenge."""
@@ -159,10 +159,10 @@ def delete_existing_challenge(
 def update_challenge_status(
     challenge_id: int,
     status_data: ChallengeStatusUpdate,
-    current_user: User = Depends(require_roles("government")),
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> Challenge:
-    """Update the lifecycle status of a challenge."""
+    """Update the lifecycle status of a challenge according to role."""
 
     challenge = get_challenge_by_id(
         db,
@@ -175,6 +175,37 @@ def update_challenge_status(
             detail="Challenge not found",
         )
 
+    # Government handles review and validation.
+    if current_user.role == "government":
+        allowed_transitions = {
+            "SUBMITTED": ["UNDER_REVIEW"],
+            "UNDER_REVIEW": ["VALIDATED", "REJECTED"],
+        }
+
+    # University handles team formation.
+    elif current_user.role == "university":
+        allowed_transitions = {
+            "VALIDATED": ["TEAM_FORMED"],
+        }
+
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Your role cannot change challenge status",
+        )
+
+    allowed_next_statuses = allowed_transitions.get(challenge.status, [])
+
+    if status_data.new_status not in allowed_next_statuses:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=(
+                f"Role '{current_user.role}' cannot transition "
+                f"{challenge.status} -> {status_data.new_status}"
+            ),
+        )
+
+    # Also keep the global state machine as a safety check.
     if not can_transition(
         challenge.status,
         status_data.new_status,

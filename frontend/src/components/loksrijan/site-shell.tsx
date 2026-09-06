@@ -1,8 +1,11 @@
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { Menu, X } from "lucide-react";
 import { Wordmark, CivicRule } from "./brand";
 import { cn } from "@/lib/utils";
+import { useAuth, logout } from "@/lib/session";
+import { getDashboardForRole } from "@/lib/roles";
 
 const NAV = [
   { to: "/challenges", label: "Problems" },
@@ -13,30 +16,69 @@ const NAV = [
 export function SiteShell({ children }: { children: React.ReactNode }) {
   const [open, setOpen] = useState(false);
 
+  const { isAuthenticated, role } = useAuth();
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+
+  const dashboard = role ? getDashboardForRole(role) : "/join";
+
+  const handleSignOut = () => {
+    logout(queryClient);
+    setOpen(false);
+    navigate({ to: "/join" });
+  };
+
   return (
     <div className="flex min-h-screen flex-col bg-background">
       <CivicRule />
+
       <header className="sticky top-0 z-40 border-b border-border bg-background/95 backdrop-blur">
         <div className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between px-5">
           <Wordmark />
+
+          {/* Desktop navigation */}
           <nav className="hidden items-center gap-7 md:flex">
             {NAV.map((n) => (
               <Link
                 key={n.to}
                 to={n.to}
                 className="text-sm text-muted-foreground transition-colors hover:text-foreground"
-                activeProps={{ className: "text-foreground font-medium" }}
+                activeProps={{
+                  className: "text-foreground font-medium",
+                }}
               >
                 {n.label}
               </Link>
             ))}
-            <Link
-              to="/join"
-              className="inline-flex h-10 items-center rounded-sm bg-saffron px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-saffron/90"
-            >
-              Sign in
-            </Link>
+
+            {isAuthenticated ? (
+              <div className="flex items-center gap-4">
+                <Link
+                  to={dashboard}
+                  className="inline-flex h-10 items-center rounded-sm bg-saffron px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-saffron/90"
+                >
+                  My workspace
+                </Link>
+
+                <button
+                  type="button"
+                  onClick={handleSignOut}
+                  className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+                >
+                  Sign out
+                </button>
+              </div>
+            ) : (
+              <Link
+                to="/join"
+                className="inline-flex h-10 items-center rounded-sm bg-saffron px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-saffron/90"
+              >
+                Sign in
+              </Link>
+            )}
           </nav>
+
+          {/* Mobile menu button */}
           <button
             type="button"
             aria-label="Toggle menu"
@@ -46,7 +88,14 @@ export function SiteShell({ children }: { children: React.ReactNode }) {
             {open ? <X className="size-4" /> : <Menu className="size-4" />}
           </button>
         </div>
-        <div className={cn("border-t border-border md:hidden", open ? "block" : "hidden")}>
+
+        {/* Mobile navigation */}
+        <div
+          className={cn(
+            "border-t border-border md:hidden",
+            open ? "block" : "hidden",
+          )}
+        >
           <div className="mx-auto flex w-full max-w-6xl flex-col px-5 py-3">
             {NAV.map((n) => (
               <Link
@@ -58,13 +107,34 @@ export function SiteShell({ children }: { children: React.ReactNode }) {
                 {n.label}
               </Link>
             ))}
-            <Link
-              to="/join"
-              onClick={() => setOpen(false)}
-              className="mt-2 inline-flex h-11 items-center justify-center rounded-sm bg-saffron text-sm font-medium text-primary-foreground"
-            >
-              Sign in
-            </Link>
+
+            {isAuthenticated ? (
+              <>
+                <Link
+                  to={dashboard}
+                  onClick={() => setOpen(false)}
+                  className="mt-2 inline-flex h-11 items-center justify-center rounded-sm bg-saffron text-sm font-medium text-primary-foreground"
+                >
+                  My workspace
+                </Link>
+
+                <button
+                  type="button"
+                  onClick={handleSignOut}
+                  className="mt-2 py-2 text-sm text-muted-foreground"
+                >
+                  Sign out
+                </button>
+              </>
+            ) : (
+              <Link
+                to="/join"
+                onClick={() => setOpen(false)}
+                className="mt-2 inline-flex h-11 items-center justify-center rounded-sm bg-saffron text-sm font-medium text-primary-foreground"
+              >
+                Sign in
+              </Link>
+            )}
           </div>
         </div>
       </header>
@@ -76,22 +146,27 @@ export function SiteShell({ children }: { children: React.ReactNode }) {
           <div>
             <Wordmark />
             <p className="mt-4 max-w-sm text-sm leading-relaxed text-muted-foreground">
-              A civic problem pipeline: citizens report, NGOs verify, student teams build, industry
-              mentors, and government adopts what works.
+              A civic problem pipeline: citizens report, NGOs verify, student
+              teams build, industry mentors, and government adopts what works.
             </p>
           </div>
+
           <div>
             <p className="label-caps text-muted-foreground">Explore</p>
             <ul className="mt-3 space-y-2 text-sm">
               {NAV.map((n) => (
                 <li key={n.to}>
-                  <Link to={n.to} className="text-foreground hover:text-saffron">
+                  <Link
+                    to={n.to}
+                    className="text-foreground hover:text-saffron"
+                  >
                     {n.label}
                   </Link>
                 </li>
               ))}
             </ul>
           </div>
+
           <div>
             <p className="label-caps text-muted-foreground">Participants</p>
             <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
@@ -102,9 +177,11 @@ export function SiteShell({ children }: { children: React.ReactNode }) {
             </ul>
           </div>
         </div>
+
         <div className="border-t border-border">
           <div className="mx-auto w-full max-w-6xl px-5 py-5 text-xs text-muted-foreground">
-            LokSrijan — prototype built for Smart India Hackathon 2026. Data shown is illustrative.
+            LokSrijan — prototype built for Smart India Hackathon 2026. Data
+            shown is illustrative.
           </div>
         </div>
       </footer>

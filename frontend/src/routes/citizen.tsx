@@ -1,5 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import {
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
+import { useState } from "react";
 
 import {
   DashboardShell,
@@ -41,10 +46,44 @@ const NAV = [
   { to: "/how-it-works", label: "How it works" },
 ];
 
+type Severity = "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
+
 function CitizenDashboard() {
+  const queryClient = useQueryClient();
+
+  const [showReportForm, setShowReportForm] = useState(false);
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [category, setCategory] = useState("Water & Sanitation");
+  const [location, setLocation] = useState("");
+  const [severity, setSeverity] = useState<Severity>("MEDIUM");
+
   const challengesQuery = useQuery({
     queryKey: ["challenges"],
     queryFn: () => challengeService.listChallenges(),
+  });
+
+  const createChallengeMutation = useMutation({
+    mutationFn: () =>
+      challengeService.createChallenge({
+        title,
+        description,
+        category,
+        location,
+        severity,
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["challenges"],
+      });
+
+      setShowReportForm(false);
+      setTitle("");
+      setDescription("");
+      setCategory("Water & Sanitation");
+      setLocation("");
+      setSeverity("MEDIUM");
+    },
   });
 
   const challenges = challengesQuery.data ?? [];
@@ -71,6 +110,141 @@ function CitizenDashboard() {
       title="Civic challenges"
       subtitle="Browse civic challenges and follow their progress through the LokSrijan pipeline."
     >
+      {/* Report Problem Action */}
+      <div className="mb-6 flex justify-end">
+        <button
+          type="button"
+          onClick={() => setShowReportForm((value) => !value)}
+          className="bg-saffron px-5 py-3 text-sm font-semibold text-white hover:opacity-90"
+        >
+          {showReportForm
+            ? "Close report form"
+            : "+ Report a Problem"}
+        </button>
+      </div>
+
+      {/* Report Problem Form */}
+      {showReportForm && (
+        <Panel title="Report a Civic Problem">
+          <form
+            onSubmit={(event) => {
+              event.preventDefault();
+              createChallengeMutation.mutate();
+            }}
+            className="grid gap-4 md:grid-cols-2"
+          >
+            <div className="md:col-span-2">
+              <label className="text-sm font-medium text-foreground">
+                Problem title
+              </label>
+
+              <input
+                required
+                value={title}
+                onChange={(event) => setTitle(event.target.value)}
+                placeholder="e.g. Irregular water supply in Rohini"
+                className="mt-2 w-full border border-border bg-background px-3 py-3 text-sm outline-none"
+              />
+            </div>
+
+            <div className="md:col-span-2">
+              <label className="text-sm font-medium text-foreground">
+                Describe the problem
+              </label>
+
+              <textarea
+                required
+                minLength={10}
+                value={description}
+                onChange={(event) => setDescription(event.target.value)}
+                placeholder="Describe what is happening and how it affects the community."
+                rows={4}
+                className="mt-2 w-full border border-border bg-background px-3 py-3 text-sm outline-none"
+              />
+            </div>
+
+            <div>
+              <label className="text-sm font-medium text-foreground">
+                Category
+              </label>
+
+              <select
+                value={category}
+                onChange={(event) => setCategory(event.target.value)}
+                className="mt-2 w-full border border-border bg-background px-3 py-3 text-sm"
+              >
+                <option>Water & Sanitation</option>
+                <option>Waste Management</option>
+                <option>Roads & Infrastructure</option>
+                <option>Street Lighting</option>
+                <option>Education</option>
+                <option>Healthcare</option>
+                <option>Environment</option>
+                <option>Public Safety</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="text-sm font-medium text-foreground">
+                Severity
+              </label>
+
+              <select
+                value={severity}
+                onChange={(event) =>
+                  setSeverity(event.target.value as Severity)
+                }
+                className="mt-2 w-full border border-border bg-background px-3 py-3 text-sm"
+              >
+                <option value="LOW">Low</option>
+                <option value="MEDIUM">Medium</option>
+                <option value="HIGH">High</option>
+                <option value="CRITICAL">Critical</option>
+              </select>
+            </div>
+
+            <div className="md:col-span-2">
+              <label className="text-sm font-medium text-foreground">
+                Location
+              </label>
+
+              <input
+                required
+                value={location}
+                onChange={(event) => setLocation(event.target.value)}
+                placeholder="e.g. Rohini, Delhi"
+                className="mt-2 w-full border border-border bg-background px-3 py-3 text-sm outline-none"
+              />
+            </div>
+
+            {createChallengeMutation.isError && (
+              <div className="md:col-span-2 border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+                Unable to submit the problem. Please try again.
+              </div>
+            )}
+
+            {createChallengeMutation.isSuccess && (
+              <div className="md:col-span-2 border border-green-200 bg-green-50 p-3 text-sm text-green-700">
+                Problem submitted successfully.
+              </div>
+            )}
+
+            <div className="md:col-span-2 flex justify-end">
+              <button
+                type="submit"
+                disabled={createChallengeMutation.isPending}
+                className="bg-field px-6 py-3 text-sm font-semibold text-white disabled:opacity-50"
+              >
+                {createChallengeMutation.isPending
+                  ? "Submitting..."
+                  : "Submit Problem"}
+              </button>
+            </div>
+          </form>
+        </Panel>
+      )}
+
+      {/* Statistics */}
       <div className="grid gap-4 sm:grid-cols-3">
         <StatTile
           label="Challenges available"
@@ -93,6 +267,7 @@ function CitizenDashboard() {
         />
       </div>
 
+      {/* Current Challenges + Pipeline */}
       <div className="mt-8 grid gap-6 lg:grid-cols-[1.5fr_1fr]">
         <Panel title="Current civic challenges">
           {challengesQuery.isPending ? (
@@ -109,6 +284,7 @@ function CitizenDashboard() {
               <p className="text-sm text-muted-foreground">
                 Unable to load current challenges.
               </p>
+
               <button
                 type="button"
                 onClick={() => challengesQuery.refetch()}
@@ -180,11 +356,13 @@ function CitizenDashboard() {
         </Panel>
       </div>
 
+      {/* Challenges Worth Following */}
       <div className="mt-10 flex items-end justify-between gap-4">
         <div>
           <h2 className="text-lg font-semibold text-foreground">
             Challenges worth following
           </h2>
+
           <p className="mt-1 text-sm text-muted-foreground">
             Explore real challenges and see where they are in the civic
             pipeline.
