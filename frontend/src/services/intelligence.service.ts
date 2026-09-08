@@ -1,6 +1,8 @@
 import { api } from "@/lib/api";
 import type {
   ChallengeIntelligenceResponse,
+  ChallengePrioritySummary,
+  PriorityResponse,
   ProblemAnalysisResponse,
   SimilarityResponse,
 } from "@/types/intelligence";
@@ -32,5 +34,21 @@ export const intelligenceService = {
       text_a,
       text_b,
     });
+  },
+
+  /**
+   * Explainable priority score for one challenge. Authenticated endpoint.
+   */
+  getPriority(challengeId: number): Promise<PriorityResponse> {
+    return api.post<PriorityResponse>(
+      `/api/intelligence/challenges/${challengeId}/priority`,
+    );
+  },
+
+  /**
+   * Priority summaries for every challenge (government dashboard). Authenticated endpoint.
+   */
+  listPriorities(): Promise<ChallengePrioritySummary[]> {
+    return api.get<ChallengePrioritySummary[]>("/api/intelligence/priorities");
   },
 };

@@ -12,6 +12,7 @@ import {
 import { challengeService } from "@/services/challenge.service";
 import { projectService } from "@/services/project.service";
 import { teamService } from "@/services/team.service";
+import { cn } from "@/lib/utils";
 import type { ChallengeStatus } from "@/types/challenge";
 import type { ProjectStatus } from "@/types/project";
 
@@ -57,6 +58,28 @@ const ACTIVE_CHALLENGE_STATUSES: ChallengeStatus[] = [
   "SOLUTION_PROPOSED",
   "IMPLEMENTED",
 ];
+
+const TEAM_STATUS_LABELS: Record<string, string> = {
+  FORMING: "Forming",
+  ACTIVE: "Active",
+  COMPLETED: "Completed",
+  PAUSED: "Paused",
+};
+
+function TeamStatusBadge({ status }: { status: string }) {
+  const tone =
+    status === "ACTIVE"
+      ? "bg-saffron text-primary-foreground"
+      : status === "COMPLETED"
+        ? "bg-field text-primary-foreground"
+        : "bg-muted text-muted-foreground";
+
+  return (
+    <span className={cn("label-caps rounded-sm px-2 py-1", tone)}>
+      {TEAM_STATUS_LABELS[status] ?? status}
+    </span>
+  );
+}
 
 function UniversityDashboard() {
   const challengesQuery = useQuery({
@@ -332,7 +355,7 @@ function UniversityDashboard() {
                       {team.progress}%
                     </span>
 
-                    <StatusBadge status={team.status} />
+                    <TeamStatusBadge status={team.status} />
                   </div>
                 </div>
               ))}

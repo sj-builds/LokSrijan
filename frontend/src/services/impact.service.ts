@@ -1,5 +1,10 @@
 import { api } from "@/lib/api";
-import type { ImpactCreate, ImpactResponse, ImpactUpdate } from "@/types/impact";
+import type {
+  ImpactCreate,
+  ImpactResponse,
+  ImpactUpdate,
+  ImpactVerify,
+} from "@/types/impact";
 
 export const impactService = {
   /**
@@ -7,6 +12,13 @@ export const impactService = {
    */
   createImpact(data: ImpactCreate): Promise<ImpactResponse> {
     return api.post<ImpactResponse>("/api/impact", data);
+  },
+
+  /**
+   * Return all impact records. Authenticated endpoint.
+   */
+  listImpacts(): Promise<ImpactResponse[]> {
+    return api.get<ImpactResponse[]>("/api/impact");
   },
 
   /**
@@ -21,5 +33,12 @@ export const impactService = {
    */
   updateImpact(projectId: number, data: ImpactUpdate): Promise<ImpactResponse> {
     return api.patch<ImpactResponse>(`/api/impact/${projectId}`, data);
+  },
+
+  /**
+   * Mark impact evidence as verified. Government role required by backend.
+   */
+  verifyImpact(projectId: number, data: ImpactVerify): Promise<ImpactResponse> {
+    return api.post<ImpactResponse>(`/api/impact/${projectId}/verify`, data);
   },
 };

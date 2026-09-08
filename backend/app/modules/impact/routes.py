@@ -6,15 +6,19 @@ from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.models.project import Project
 from app.modules.auth.dependencies import get_current_user
+from app.modules.auth.permissions import require_roles
 from app.modules.impact.service import (
     create_impact,
     get_impact,
+    list_impacts,
     update_impact,
+    verify_impact,
 )
 from app.schemas.impact import (
     ImpactCreate,
     ImpactResponse,
     ImpactUpdate,
+    ImpactVerify,
 )
 
 router = APIRouter()
@@ -49,6 +53,19 @@ def create_impact_endpoint(
         )
 
     return create_impact(db, data)
+
+
+@router.get(
+    "",
+    response_model=list[ImpactResponse],
+)
+def list_impacts_endpoint(
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    """Return all impact records."""
+
+    return list_impacts(db)
 
 
 @router.get(
@@ -94,3 +111,27 @@ def update_impact_endpoint(
         )
 
     return update_impact(db, impact, data)
+
+
+@router.post(
+    "/{project_id}/verify",
+    response_model=ImpactResponse,
+    dependencies=[Depends(require_roles("government"))],
+)
+def verify_impact_endpoint(
+    project_id: int,
+    data: ImpactVerify,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    """Mark impact evidence as verified. Government users only."""
+
+    impact = get_impact(db, project_id)
+
+    if not impact:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Impact record not found",
+        )
+
+    return verify_impact(db, impact, data)

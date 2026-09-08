@@ -17,12 +17,14 @@ from app.api import health
 from app.api.router import api_router
 from app.core.config import settings
 from app.core.database import Base, engine
+from app.core.schema_updates import apply_additive_updates
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Initialize application resources."""
 
     Base.metadata.create_all(bind=engine)
+    apply_additive_updates(engine)
 
     yield
 

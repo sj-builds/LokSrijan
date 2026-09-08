@@ -89,5 +89,8 @@ class InstitutionResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
 
+    # True for records from the seeded demo dataset.
+    is_demo: bool = False
+
     class Config:
         from_attributes = True

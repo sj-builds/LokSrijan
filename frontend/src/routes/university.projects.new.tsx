@@ -12,7 +12,7 @@ import { UNIVERSITY_NAV } from "./university.index";
 
 export const Route = createFileRoute("/university/projects/new")({
   validateSearch: (search: Record<string, unknown>) => ({
-    challengeId: Number(search.challengeId) || 0,
+    challengeId: Number(search["challengeId"]) || 0,
   }),
 
   head: () => ({

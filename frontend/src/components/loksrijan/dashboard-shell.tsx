@@ -25,7 +25,7 @@ export function DashboardShell({
   nav: NavItem[];
   title: string;
   subtitle: string;
-  primaryAction?: { label: string; onClick?: () => void; to?: string };
+  primaryAction?: { label: string; onClick?: () => void; to?: string } | undefined;
   allowedRoles?: BackendRole[];
   children: React.ReactNode;
 }) {

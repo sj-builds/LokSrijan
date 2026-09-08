@@ -45,6 +45,14 @@ class Challenge(Base):
         default="MEDIUM",
     )
 
+    # Urgency reported by the citizen / extracted by AI structuring.
+    # NULL for records created before the field existed; the priority
+    # model falls back to severity in that case.
+    urgency: Mapped[str | None] = mapped_column(
+        String(50),
+        nullable=True,
+    )
+
     status: Mapped[str] = mapped_column(
         String(50),
         nullable=False,
@@ -55,6 +63,12 @@ class Challenge(Base):
         ForeignKey("users.id"),
         nullable=False,
         index=True,
+    )
+
+    # True when the record comes from the seeded demo dataset.
+    is_demo: Mapped[bool] = mapped_column(
+        default=False,
+        nullable=False,
     )
 
     created_at: Mapped[datetime] = mapped_column(

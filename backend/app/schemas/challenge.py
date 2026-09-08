@@ -51,6 +51,10 @@ class ChallengeCreate(BaseModel):
 
     severity: ChallengeSeverity = "MEDIUM"
 
+    # Reported urgency; omitted on legacy clients, in which case the
+    # priority model derives it from severity.
+    urgency: ChallengeSeverity | None = None
+
 
 class ChallengeUpdate(BaseModel):
     """Request body for updating a challenge."""
@@ -80,6 +84,8 @@ class ChallengeUpdate(BaseModel):
 
     severity: ChallengeSeverity | None = None
 
+    urgency: ChallengeSeverity | None = None
+
 
 class ChallengeStatusUpdate(BaseModel):
     """Request body for changing challenge status."""
@@ -98,7 +104,11 @@ class ChallengeResponse(BaseModel):
     category: str
     location: str
     severity: ChallengeSeverity
+    urgency: ChallengeSeverity | None = None
     status: ChallengeStatus
     created_by: int
     created_at: datetime
     updated_at: datetime
+
+    # True for records from the seeded demo dataset.
+    is_demo: bool = False

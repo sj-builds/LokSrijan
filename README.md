@@ -14,11 +14,15 @@ An AI-assisted societal innovation collaboration platform for Jharkhand.
 >   government body, university, NGO, or company.
 > - All data in the application is **demo data**, labelled as such.
 >
-> ### Current state: development foundation
+> ### Current state: functional prototype
 >
-> The repository, both applications, the API client, and the
-> frontend-to-backend connection work. **No product feature is implemented
-> yet.** See [docs/architecture.md](docs/architecture.md#6-current-mvp-scope).
+> The core loop works end to end: citizens submit problems, AI suggests
+> structure, related reports and explainable priority scores, reports are
+> grouped into challenge clusters that government validates, institutions
+> are matched by capability, teams form, projects run their lifecycle, and
+> impact is recorded as a Baseline → Target → Actual → Evidence →
+> Verification ledger. See the [Demo data](#demo-data) section to load a
+> coherent dataset and walk the whole journey.
 
 ---
 
@@ -72,13 +76,13 @@ A **modular monolith** on each side, communicating over HTTP/JSON only.
 Browser
   │  fetch (JSON)
   ▼
-Next.js  ── frontend/  localhost:3000
-  │  lib/api.ts
+TanStack Start ── frontend/  localhost:8080
+  │  src/lib/api.ts
   ▼
-FastAPI  ── backend/   localhost:8000
+FastAPI        ── backend/   localhost:8000
   │  SQLAlchemy
   ▼
-PostgreSQL             localhost:5432
+PostgreSQL                 (local Docker or hosted dev DB)
 ```
 
 Full detail: **[docs/architecture.md](docs/architecture.md)**.
@@ -87,10 +91,10 @@ Full detail: **[docs/architecture.md](docs/architecture.md)**.
 
 | Layer | Choice |
 | --- | --- |
-| Frontend | Next.js 16 (App Router), TypeScript (strict), Tailwind CSS v4, shadcn/ui |
+| Frontend | TanStack Start (Vite), TypeScript (strict), Tailwind CSS v4, shadcn/ui |
 | Backend | FastAPI, Python 3.11, SQLAlchemy 2 (sync), Pydantic 2 |
-| Database | PostgreSQL 16 (Docker for local development) |
-| AI | Provider-agnostic `AIService` interface — **not implemented yet** |
+| Database | PostgreSQL 16 (local Docker or hosted dev DB) |
+| AI | Provider-agnostic (`mock` or `gemini` via `AI_PROVIDER`) |
 
 Deliberately **not** included yet: authentication, Redis, PostGIS, pgvector,
 Alembic, microservices, CI/CD. Each is added when it is actually needed, and
@@ -100,22 +104,23 @@ Alembic, microservices, CI/CD. Each is added when it is actually needed, and
 
 ```
 Loksrijan/
-├── frontend/            Next.js application
-│   ├── app/             routes: /, /citizen, /government, /university,
-│   │                            /ngo, /industry, /dev
-│   ├── components/      ui/ (shadcn) · shared/ · dashboard/
-│   ├── lib/             api.ts · navigation.ts · utils.ts
-│   └── types/           API types mirroring backend schemas
+├── frontend/            TanStack Start application (Vite, port 8080)
+│   ├── src/routes/      /, /citizen, /government, /university, /challenges,
+│   │                    /ngo, /industry, /auth/$role, /team …
+│   ├── src/components/  loksrijan/ (shells, explorer) · ui/ (shadcn)
+│   ├── src/services/    API clients mirroring backend routes
+│   ├── src/lib/         api.ts · session.ts · roles.ts · utils.ts
+│   └── src/types/       API types mirroring backend schemas
 ├── backend/             FastAPI application
 │   ├── app/
-│   │   ├── main.py      app, CORS, routers
-│   │   ├── core/        config.py · database.py
+│   │   ├── main.py      app, CORS, routers, additive schema updates
+│   │   ├── core/        config.py · database.py · schema_updates.py
 │   │   ├── api/         health.py · router.py
 │   │   ├── models/      SQLAlchemy ORM models (one file per entity)
 │   │   ├── schemas/     Pydantic request/response models
-│   │   ├── services/    business logic
-│   │   └── modules/     auth users challenges ai matching
-│   │                    projects impact analytics  (feature routers)
+│   │   ├── modules/     auth challenges intelligence institutions
+│   │   │                matching projects teams impact analytics clusters
+│   │   └── seed_demo.py idempotent demo dataset loader
 │   └── requirements.txt
 ├── docs/                architecture · api-contract · team-workflow
 ├── docker-compose.yml   local PostgreSQL
@@ -209,13 +214,13 @@ cp .env.example .env.local
 npm run dev
 ```
 
-Open http://localhost:3000.
+Open http://localhost:8080.
 
 ### 4. Confirm everything is connected
 
-Open **http://localhost:3000/dev**. It checks the browser → frontend → backend
-path and reports whether PostgreSQL is reachable. A failing database row is
-expected until step 1 succeeds; the API row should be green either way.
+The frontend home page and `/challenges` call the API from the browser, so
+the connection is visible immediately. The backend exposes
+`/health` and `/health/db` for direct checks.
 
 ### Useful commands
 
@@ -239,11 +244,12 @@ Never commit a `.env` file. `.env.example` is the documented reference; copy it.
 | --- | --- | --- |
 | `DATABASE_URL` | backend | required |
 | `CORS_ORIGINS` | backend | required |
-| `NEXT_PUBLIC_API_URL` | frontend | required |
+| `VITE_API_BASE_URL` (in `frontend/.env.local`) | frontend | required |
 | `POSTGRES_USER` / `_PASSWORD` / `_DB` / `_PORT` | docker-compose | required |
 | `APP_NAME`, `ENVIRONMENT`, `DEBUG` | backend | optional, defaults exist |
-| `AI_PROVIDER`, `AI_API_KEY` | backend | **reserved — unused** |
-| `REDIS_URL`, `JWT_SECRET`, `ENABLE_POSTGIS`, `ENABLE_PGVECTOR` | — | **reserved — not configured** |
+| `AI_PROVIDER`, `AI_API_KEY` | backend | used — `mock` (default, no key) or `gemini` |
+| `REDIS_URL`, `ENABLE_POSTGIS`, `ENABLE_PGVECTOR` | — | **reserved — not configured** |
+| `JWT_SECRET_KEY` | backend | used — set a long random value in non-dev environments |
 
 `NEXT_PUBLIC_*` variables are compiled into the browser bundle and are publicly
 visible. Never put a secret in one.
@@ -278,21 +284,62 @@ Priority order. Anything outside this list waits.
 
 | # | Feature | Status |
 | --- | --- | --- |
-| 1 | Citizen problem submission | not started |
-| 2 | AI problem structuring | not started |
-| 3 | Duplicate detection | not started |
-| 4 | Challenge clustering | not started |
-| 5 | Human validation | not started |
-| 6 | University matching | not started |
-| 7 | NGO matching | not started |
-| 8 | Project lifecycle | not started |
-| 9 | Impact tracking | not started |
-| 10 | Government analytics dashboard | not started |
+| # | Feature | Status |
+| --- | --- | --- |
+| 1 | Citizen problem submission | implemented |
+| 2 | AI problem structuring | implemented (mock + Gemini) |
+| 3 | Related report detection | implemented, explainable signals |
+| 4 | Challenge clustering | implemented (suggest → validate) |
+| 5 | Human validation | implemented (state machine + RBAC) |
+| 6 | University / institution matching | implemented, capability-based |
+| 7 | Explainable priority | implemented (configurable scoring model) |
+| 8 | Project lifecycle | implemented |
+| 9 | Impact ledger | implemented (baseline → verified) |
+| 10 | Government analytics dashboard | implemented |
 
-Foundation complete: monorepo under git, both applications running,
-environment-driven configuration, verified frontend-to-backend connectivity.
+Monorepo under git, both applications running, environment-driven
+configuration, verified browser → frontend → backend → database
+connectivity.
 
 ---
+
+## Demo data
+
+Run once, from the `backend/` directory (the backend must have started once
+so the tables exist):
+
+```bash
+python -m app.seed_demo
+```
+
+The script is **idempotent** — running it again skips records that already
+exist and never modifies non-demo records. Everything it creates is flagged
+`is_demo=True` and is clearly illustrative, not official Jharkhand
+government data. The seeded impact record is deliberately left with
+`verification_status=PENDING`; nothing is presented as verified unless an
+officer records that decision.
+
+Demo sign-in (all roles, password `demo1234`):
+
+| Role | Email |
+| --- | --- |
+| Citizen | `citizen@demo.loksrijan.in` |
+| Government | `government@demo.loksrijan.in` |
+| University | `university@demo.loksrijan.in` |
+| NGO | `ngo@demo.loksrijan.in` |
+| Industry | `industry@demo.loksrijan.in` |
+
+Suggested demo path: sign in as **Citizen** and file a problem → the AI
+structuring panel suggests fields → **Government** reviews priority, runs
+"Suggest clusters" and validates one → open any challenge to see related
+reports, priority factors and capability matches → **University** forms a
+team / project → the project workspace records baseline→target→actual→
+evidence → **Government** verifies the impact.
+
+The AI layer is provider-agnostic: `AI_PROVIDER=mock` (deterministic,
+no key) or `gemini` (needs `AI_API_KEY`). If the live provider fails, the
+backend degrades gracefully to the deterministic mock so the demo keeps
+working.
 
 ## Project rules
 

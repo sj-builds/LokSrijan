@@ -62,6 +62,12 @@ class Institution(Base):
         nullable=False,
     )
 
+    # True when the record comes from the seeded demo dataset.
+    is_demo: Mapped[bool] = mapped_column(
+        default=False,
+        nullable=False,
+    )
+
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         default=datetime.utcnow,

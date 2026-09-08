@@ -10,6 +10,8 @@ from app.modules.institutions.routes import router as institutions_router
 from app.modules.impact.routes import router as impact_router
 from app.modules.analytics.routes import router as analytics_router
 from app.modules.teams.routes import router as teams_router
+from app.modules.clusters.routes import router as clusters_router
+from app.modules.solutions.routes import router as solutions_router
 
 api_router = APIRouter()
 
@@ -60,4 +62,16 @@ api_router.include_router(
     teams_router,
     prefix="/teams",
     tags=["teams"],
+)
+
+api_router.include_router(
+    clusters_router,
+    prefix="/clusters",
+    tags=["clusters"],
+)
+
+api_router.include_router(
+    solutions_router,
+    prefix="/solutions",
+    tags=["solutions"],
 )

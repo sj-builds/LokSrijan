@@ -23,6 +23,7 @@ def create_challenge(
         category=challenge_data.category,
         location=challenge_data.location,
         severity=challenge_data.severity,
+        urgency=challenge_data.urgency,
         status="SUBMITTED",
         created_by=user_id,
     )

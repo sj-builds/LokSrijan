@@ -1,0 +1,2 @@
+# Keeps this directory in git until shadcn/ui components are added here.
+# Add components with: npx shadcn@latest add button

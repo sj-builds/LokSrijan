@@ -23,6 +23,8 @@ from app.models.user import User
 from app.models.institution import Institution
 from app.models.impact import Impact
 from app.models.team import Team
+from app.models.cluster import ChallengeCluster, ChallengeClusterMember
+from app.models.solution import SolutionPassport
 
 __all__ = [
     "Base",
@@ -32,4 +34,7 @@ __all__ = [
     "Institution",
     "Impact",
     "Team",
+    "ChallengeCluster",
+    "ChallengeClusterMember",
+    "SolutionPassport",
 ]

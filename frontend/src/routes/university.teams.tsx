@@ -71,7 +71,10 @@ function TeamsPage() {
 
   useEffect(() => {
     if (selected === null && teams.length > 0) {
-      setSelected(teams[0].id);
+      const first = teams[0];
+      if (first) {
+        setSelected(first.id);
+      }
     }
   }, [selected, teams]);
 

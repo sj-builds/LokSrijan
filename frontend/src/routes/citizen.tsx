@@ -16,6 +16,9 @@ import {
   StatusBadge,
 } from "@/components/loksrijan/problem-explorer";
 import { challengeService } from "@/services/challenge.service";
+import { intelligenceService } from "@/services/intelligence.service";
+import type { ProblemAnalysisResponse } from "@/types/intelligence";
+import { Sparkles, ShieldAlert } from "lucide-react";
 
 export const Route = createFileRoute("/citizen")({
   head: () => ({
@@ -48,6 +51,18 @@ const NAV = [
 
 type Severity = "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
 
+const DOMAIN_TO_CATEGORY: Record<string, string> = {
+  water: "Water & Sanitation",
+  sanitation: "Water & Sanitation",
+  education: "Education",
+  healthcare: "Healthcare",
+  health: "Healthcare",
+  agriculture: "Agriculture",
+  environment: "Environment",
+  roads: "Roads & Infrastructure",
+  safety: "Public Safety",
+};
+
 function CitizenDashboard() {
   const queryClient = useQueryClient();
 
@@ -57,6 +72,14 @@ function CitizenDashboard() {
   const [category, setCategory] = useState("Water & Sanitation");
   const [location, setLocation] = useState("");
   const [severity, setSeverity] = useState<Severity>("MEDIUM");
+  const [urgency, setUrgency] = useState<Severity>("MEDIUM");
+
+  // AI problem structuring state.
+  const [aiAnalysis, setAiAnalysis] = useState<ProblemAnalysisResponse | null>(
+    null,
+  );
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiError, setAiError] = useState<string | null>(null);
 
   const challengesQuery = useQuery({
     queryKey: ["challenges"],
@@ -71,6 +94,7 @@ function CitizenDashboard() {
         category,
         location,
         severity,
+        urgency,
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({
@@ -83,8 +107,69 @@ function CitizenDashboard() {
       setCategory("Water & Sanitation");
       setLocation("");
       setSeverity("MEDIUM");
+      setUrgency("MEDIUM");
+      setAiAnalysis(null);
+      setAiError(null);
     },
   });
+
+  const runAiAnalysis = async () => {
+    if (description.trim().length < 10) {
+      setAiError(
+        "Add at least a few sentences so the AI has something to structure.",
+      );
+      return;
+    }
+
+    setAiLoading(true);
+    setAiError(null);
+
+    try {
+      const analysis = await intelligenceService.analyzeProblem(
+        description.trim(),
+      );
+      setAiAnalysis(analysis);
+    } catch {
+      setAiAnalysis(null);
+      setAiError(
+        "AI analysis is temporarily unavailable. Your report is saved as-is and can be processed later.",
+      );
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
+  const applyAiSuggestions = () => {
+    if (!aiAnalysis) {
+      return;
+    }
+
+    const mappedCategory = DOMAIN_TO_CATEGORY[
+      aiAnalysis.domain.toLowerCase()
+    ];
+
+    if (
+      aiAnalysis.problem &&
+      aiAnalysis.problem !== "Problem requires manual analysis"
+    ) {
+      // Backend ChallengeCreate caps the title at 200 characters;
+      // truncate so an overly verbose AI suggestion cannot silently
+      // fail the submit with a 422.
+      setTitle(aiAnalysis.problem.slice(0, 200));
+    }
+
+    if (mappedCategory) {
+      setCategory(mappedCategory);
+    }
+
+    setSeverity(aiAnalysis.severity);
+    setUrgency(aiAnalysis.urgency);
+  };
+
+  const aiNeedsVerification =
+    aiAnalysis !== null &&
+    (aiAnalysis.human_verification_required ||
+      aiAnalysis.confidence < 0.8);
 
   const challenges = challengesQuery.data ?? [];
 
@@ -157,11 +242,153 @@ function CitizenDashboard() {
                 minLength={10}
                 value={description}
                 onChange={(event) => setDescription(event.target.value)}
-                placeholder="Describe what is happening and how it affects the community."
+                placeholder="Describe what is happening and how it affects the community. Example: Hamare area ke handpump ka paani peela aa raha hai aur bachchon ko problem ho rahi hai."
                 rows={4}
                 className="mt-2 w-full border border-border bg-background px-3 py-3 text-sm outline-none"
               />
+
+              <div className="mt-3 flex flex-wrap items-center gap-3">
+                <button
+                  type="button"
+                  onClick={runAiAnalysis}
+                  disabled={aiLoading}
+                  className="inline-flex h-9 items-center gap-2 border border-saffron bg-saffron-soft px-3 text-xs font-medium text-foreground hover:bg-saffron/20 disabled:opacity-50"
+                >
+                  <Sparkles className="size-3.5" />
+                  {aiLoading ? "Analyzing…" : "Analyze with AI"}
+                </button>
+
+                <span className="text-xs text-muted-foreground">
+                  AI suggests structure; you stay in control of what is
+                  submitted.
+                </span>
+              </div>
             </div>
+
+            {aiError && (
+              <div className="md:col-span-2 flex items-start gap-2.5 border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+                <ShieldAlert className="mt-0.5 size-4 shrink-0" />
+                <span>{aiError}</span>
+              </div>
+            )}
+
+            {aiAnalysis && (
+              <div className="md:col-span-2 border border-border bg-card p-4">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div className="flex items-center gap-2">
+                    <span className="label-caps rounded-sm bg-saffron-soft px-2 py-1 text-foreground">
+                      AI Suggested
+                    </span>
+
+                    {aiNeedsVerification && (
+                      <span className="label-caps rounded-sm bg-amber-100 px-2 py-1 text-amber-800">
+                        Needs Verification
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={applyAiSuggestions}
+                      className="inline-flex h-8 items-center border border-saffron bg-saffron px-3 text-xs font-medium text-primary-foreground hover:bg-saffron/90"
+                    >
+                      Apply suggestions
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setAiAnalysis(null);
+                        setAiError(null);
+                      }}
+                      className="inline-flex h-8 items-center border border-border px-3 text-xs font-medium text-muted-foreground hover:text-foreground"
+                    >
+                      Dismiss
+                    </button>
+                  </div>
+                </div>
+
+                <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                  <div>
+                    <p className="label-caps text-muted-foreground">
+                      Suggested title
+                    </p>
+                    <p className="mt-1 text-sm text-foreground">
+                      {aiAnalysis.problem}
+                    </p>
+                  </div>
+
+                  <div>
+                    <p className="label-caps text-muted-foreground">
+                      Domain / subdomain
+                    </p>
+                    <p className="mt-1 text-sm text-foreground">
+                      {aiAnalysis.domain} · {aiAnalysis.subdomain}
+                    </p>
+                  </div>
+
+                  <div>
+                    <p className="label-caps text-muted-foreground">
+                      Affected population
+                    </p>
+                    <p className="mt-1 text-sm text-foreground">
+                      {aiAnalysis.affected_population}
+                    </p>
+                  </div>
+
+                  <div>
+                    <p className="label-caps text-muted-foreground">
+                      Severity / urgency
+                    </p>
+                    <p className="mt-1 text-sm text-foreground">
+                      {aiAnalysis.severity} · {aiAnalysis.urgency}
+                    </p>
+                  </div>
+                </div>
+
+                {aiAnalysis.required_capabilities.length > 0 && (
+                  <div className="mt-4">
+                    <p className="label-caps text-muted-foreground">
+                      Required capabilities
+                    </p>
+                    <div className="mt-2 flex flex-wrap gap-1.5">
+                      {aiAnalysis.required_capabilities.map((capability) => (
+                        <span
+                          key={capability}
+                          className="border border-border bg-background px-2 py-1 text-xs text-foreground"
+                        >
+                          {capability}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {aiAnalysis.potential_causes.length > 0 && (
+                  <div className="mt-4">
+                    <p className="label-caps text-muted-foreground">
+                      Possible causes (not confirmed)
+                    </p>
+                    <ul className="mt-1.5 list-inside list-disc space-y-1 text-sm text-muted-foreground">
+                      {aiAnalysis.potential_causes.map((cause) => (
+                        <li key={cause}>{cause}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-border pt-3 text-xs text-muted-foreground">
+                  <span>
+                    AI confidence:{" "}
+                    <strong className="text-foreground">
+                      {Math.round(aiAnalysis.confidence * 100)}%
+                    </strong>
+                  </span>
+                  <span className="max-w-md">{aiAnalysis.reason}</span>
+                </div>
+              </div>
+            )}
 
             <div>
               <label className="text-sm font-medium text-foreground">
@@ -203,7 +430,26 @@ function CitizenDashboard() {
               </select>
             </div>
 
-            <div className="md:col-span-2">
+            <div>
+              <label className="text-sm font-medium text-foreground">
+                Urgency
+              </label>
+
+              <select
+                value={urgency}
+                onChange={(event) =>
+                  setUrgency(event.target.value as Severity)
+                }
+                className="mt-2 w-full border border-border bg-background px-3 py-3 text-sm"
+              >
+                <option value="LOW">Low</option>
+                <option value="MEDIUM">Medium</option>
+                <option value="HIGH">High</option>
+                <option value="CRITICAL">Critical</option>
+              </select>
+            </div>
+
+            <div>
               <label className="text-sm font-medium text-foreground">
                 Location
               </label>

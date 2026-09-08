@@ -23,10 +23,14 @@ export interface ChallengeResponse {
   category: string;
   location: string;
   severity: ChallengeSeverity;
+  /** Reported urgency; null for records created before the field existed. */
+  urgency: ChallengeSeverity | null;
   status: ChallengeStatus;
   created_by: number;
   created_at: string; // ISO datetime
   updated_at: string; // ISO datetime
+  /** True for records from the seeded demo dataset. */
+  is_demo?: boolean;
 }
 
 /** ChallengeCreate — body for POST /api/challenges/ (government only) */
@@ -36,6 +40,7 @@ export interface ChallengeCreate {
   category: string;
   location: string;
   severity?: ChallengeSeverity;
+  urgency?: ChallengeSeverity | null;
 }
 
 /** ChallengeUpdate — body for PUT /api/challenges/{id} */
@@ -45,6 +50,7 @@ export interface ChallengeUpdate {
   category?: string;
   location?: string;
   severity?: ChallengeSeverity;
+  urgency?: ChallengeSeverity | null;
 }
 
 /** ChallengeStatusUpdate — body for PATCH /api/challenges/{id}/status (government only) */

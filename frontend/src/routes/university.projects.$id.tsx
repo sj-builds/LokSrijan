@@ -23,10 +23,12 @@ import { cn } from "@/lib/utils";
 import { challengeService } from "@/services/challenge.service";
 import { impactService } from "@/services/impact.service";
 import { projectService } from "@/services/project.service";
+import { solutionService } from "@/services/solution.service";
 import type {
   ImpactCreate,
   ImpactUpdate,
 } from "@/types/impact";
+import type { SolutionPassportResponse } from "@/types/solution";
 import type { ProjectStatus } from "@/types/project";
 import {
   PROJECT_STATUS_LABELS,
@@ -76,6 +78,12 @@ function ProjectWorkspace() {
   const [outcome, setOutcome] = useState("");
   const [impactScore, setImpactScore] = useState("");
   const [evidence, setEvidence] = useState("");
+  const [metricName, setMetricName] = useState("");
+  const [baselineValue, setBaselineValue] = useState("");
+  const [targetValue, setTargetValue] = useState("");
+  const [actualValue, setActualValue] = useState("");
+  const [unit, setUnit] = useState("");
+  const [direction, setDirection] = useState<"down" | "up">("down");
 
   // ---------------------------------------------------------------------------
   // Project
@@ -145,6 +153,36 @@ function ProjectWorkspace() {
     setEvidence(
       impactQuery.data.evidence ?? "",
     );
+
+    setMetricName(
+      impactQuery.data.metric_name ?? "",
+    );
+
+    setBaselineValue(
+      impactQuery.data.baseline_value !== null &&
+        impactQuery.data.baseline_value !== undefined
+        ? String(impactQuery.data.baseline_value)
+        : "",
+    );
+
+    setTargetValue(
+      impactQuery.data.target_value !== null &&
+        impactQuery.data.target_value !== undefined
+        ? String(impactQuery.data.target_value)
+        : "",
+    );
+
+    setActualValue(
+      impactQuery.data.actual_value !== null &&
+        impactQuery.data.actual_value !== undefined
+        ? String(impactQuery.data.actual_value)
+        : "",
+    );
+
+    setUnit(impactQuery.data.unit ?? "");
+    setDirection(
+      impactQuery.data.improvement_direction === "up" ? "up" : "down",
+    );
   }, [impactQuery.data]);
 
   // ---------------------------------------------------------------------------
@@ -180,15 +218,25 @@ function ProjectWorkspace() {
     mutationFn: async () => {
       const payload: ImpactCreate = {
         project_id: projectId,
-        beneficiaries: beneficiaries
-          ? Number(beneficiaries)
-          : undefined,
         outcome: outcome.trim(),
-        impact_score: impactScore
-          ? Number(impactScore)
-          : undefined,
         evidence: evidence.trim() || null,
+        metric_name: metricName.trim() || null,
+        baseline_value: baselineValue
+          ? Number(baselineValue)
+          : null,
+        target_value: targetValue ? Number(targetValue) : null,
+        actual_value: actualValue ? Number(actualValue) : null,
+        unit: unit.trim() || null,
+        improvement_direction: direction,
       };
+
+      if (beneficiaries) {
+        payload.beneficiaries = Number(beneficiaries);
+      }
+
+      if (impactScore) {
+        payload.impact_score = Number(impactScore);
+      }
 
       // If an impact record already exists,
       // update it instead of creating another one.
@@ -202,6 +250,14 @@ function ProjectWorkspace() {
             ? Number(impactScore)
             : null,
           evidence: evidence.trim() || null,
+          metric_name: metricName.trim() || null,
+          baseline_value: baselineValue
+            ? Number(baselineValue)
+            : null,
+          target_value: targetValue ? Number(targetValue) : null,
+          actual_value: actualValue ? Number(actualValue) : null,
+          unit: unit.trim() || null,
+          improvement_direction: direction,
         };
 
         return impactService.updateImpact(
@@ -220,6 +276,36 @@ function ProjectWorkspace() {
         ["impact", projectId],
         savedImpact,
       );
+    },
+  });
+
+  // ---------------------------------------------------------------------------
+  // Solution passport
+  // ---------------------------------------------------------------------------
+
+  const passportsQuery = useQuery({
+    queryKey: ["passports"],
+    queryFn: () => solutionService.listPassports(),
+    enabled: Boolean(project) && project?.status === "COMPLETED",
+    retry: false,
+  });
+
+  const passport = (passportsQuery.data ?? []).find(
+    (item: SolutionPassportResponse) => item.project_id === projectId,
+  );
+
+  const passportMutation = useMutation({
+    mutationFn: () => solutionService.generatePassport(projectId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["passports"] });
+    },
+  });
+
+  const publishPassportMutation = useMutation({
+    mutationFn: (passportId: number) =>
+      solutionService.publishPassport(passportId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["passports"] });
     },
   });
 
@@ -270,6 +356,24 @@ function ProjectWorkspace() {
   const currentStepIndex = project
     ? PROJECT_STEPS.indexOf(project.status)
     : -1;
+
+  // Client-side mirror of the backend improvement formula, purely for
+  // live preview — the stored value always comes from the server.
+  const baselineNum = baselineValue ? Number(baselineValue) : null;
+  const targetNum = targetValue ? Number(targetValue) : null;
+  const actualNum = actualValue ? Number(actualValue) : null;
+  const previewImprovement =
+    baselineNum !== null &&
+    actualNum !== null &&
+    baselineNum !== 0
+      ? (() => {
+          const raw =
+            ((baselineNum - actualNum) / Math.abs(baselineNum)) *
+            100;
+          const value = direction === "up" ? -raw : raw;
+          return Math.round(value * 10) / 10;
+        })()
+      : null;
 
   // ---------------------------------------------------------------------------
   // Loading
@@ -516,7 +620,25 @@ function ProjectWorkspace() {
           {/* ----------------------------------------------------------------- */}
 
           {project.status === "COMPLETED" && (
-            <Panel title="Project impact">
+            <Panel
+              title="Project impact"
+              action={
+                impactQuery.data ? (
+                  <span
+                    className={cn(
+                      "label-caps rounded-sm px-2 py-1",
+                      impactQuery.data.verification_status === "VERIFIED"
+                        ? "bg-field text-primary-foreground"
+                        : "bg-amber-100 text-amber-800",
+                    )}
+                  >
+                    {impactQuery.data.verification_status === "VERIFIED"
+                      ? "Verified impact"
+                      : "Verification pending"}
+                  </span>
+                ) : undefined
+              }
+            >
               <div className="space-y-5">
                 <div>
                   <p className="label-caps text-muted-foreground">
@@ -534,6 +656,114 @@ function ProjectWorkspace() {
                     rows={4}
                     className="mt-2 w-full resize-none border border-border bg-background px-3 py-2.5 text-sm text-foreground outline-none focus:border-saffron"
                   />
+                </div>
+
+                <div>
+                  <p className="label-caps text-muted-foreground">
+                    What is being measured?
+                  </p>
+
+                  <input
+                    value={metricName}
+                    onChange={(event) =>
+                      setMetricName(event.target.value)
+                    }
+                    placeholder="e.g. Water testing turnaround"
+                    className="mt-2 w-full border border-border bg-background px-3 py-2.5 text-sm text-foreground outline-none focus:border-saffron"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-5 sm:grid-cols-4">
+                  <div>
+                    <p className="label-caps text-muted-foreground">
+                      Baseline
+                    </p>
+
+                    <input
+                      type="number"
+                      value={baselineValue}
+                      onChange={(event) =>
+                        setBaselineValue(event.target.value)
+                      }
+                      placeholder="e.g. 5"
+                      className="mt-2 w-full border border-border bg-background px-3 py-2.5 text-sm text-foreground outline-none focus:border-saffron"
+                    />
+                  </div>
+
+                  <div>
+                    <p className="label-caps text-muted-foreground">
+                      Target
+                    </p>
+
+                    <input
+                      type="number"
+                      value={targetValue}
+                      onChange={(event) =>
+                        setTargetValue(event.target.value)
+                      }
+                      placeholder="e.g. 1"
+                      className="mt-2 w-full border border-border bg-background px-3 py-2.5 text-sm text-foreground outline-none focus:border-saffron"
+                    />
+                  </div>
+
+                  <div>
+                    <p className="label-caps text-muted-foreground">
+                      Actual
+                    </p>
+
+                    <input
+                      type="number"
+                      value={actualValue}
+                      onChange={(event) =>
+                        setActualValue(event.target.value)
+                      }
+                      placeholder="e.g. 1.3"
+                      className="mt-2 w-full border border-border bg-background px-3 py-2.5 text-sm text-foreground outline-none focus:border-saffron"
+                    />
+                  </div>
+
+                  <div>
+                    <p className="label-caps text-muted-foreground">
+                      Unit
+                    </p>
+
+                    <input
+                      value={unit}
+                      onChange={(event) =>
+                        setUnit(event.target.value)
+                      }
+                      placeholder="e.g. days"
+                      className="mt-2 w-full border border-border bg-background px-3 py-2.5 text-sm text-foreground outline-none focus:border-saffron"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
+                  <label className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <input
+                      type="radio"
+                      checked={direction === "down"}
+                      onChange={() => setDirection("down")}
+                      className="accent-saffron"
+                    />
+                    Lower is better
+                  </label>
+
+                  <label className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <input
+                      type="radio"
+                      checked={direction === "up"}
+                      onChange={() => setDirection("up")}
+                      className="accent-saffron"
+                    />
+                    Higher is better
+                  </label>
+
+                  {previewImprovement !== null && (
+                    <span className="label-caps rounded-sm bg-field-soft px-2 py-1 text-accent-foreground">
+                      Improvement: {previewImprovement}%
+                    </span>
+                  )}
                 </div>
 
                 <div className="grid gap-5 sm:grid-cols-2">
@@ -595,6 +825,15 @@ function ProjectWorkspace() {
                   />
                 </div>
 
+                {impactQuery.data?.verification_note && (
+                  <div className="border border-border bg-muted/30 p-3 text-xs leading-relaxed text-muted-foreground">
+                    <span className="font-medium text-foreground">
+                      Verification note:
+                    </span>{" "}
+                    {impactQuery.data.verification_note}
+                  </div>
+                )}
+
                 {/* Impact loading */}
                 {impactQuery.isPending && (
                   <p className="text-xs text-muted-foreground">
@@ -648,6 +887,164 @@ function ProjectWorkspace() {
                       : "Record impact"}
                 </button>
               </div>
+            </Panel>
+          )}
+
+          {/* ----------------------------------------------------------------- */}
+          {/* Solution passport                                                  */}
+          {/* ----------------------------------------------------------------- */}
+
+          {project.status === "COMPLETED" && (
+            <Panel
+              title="Solution passport"
+              action={
+                passport ? (
+                  <span
+                    className={cn(
+                      "label-caps rounded-sm px-2 py-1",
+                      passport.status === "PUBLISHED"
+                        ? "bg-field text-primary-foreground"
+                        : "bg-saffron-soft text-foreground",
+                    )}
+                  >
+                    {passport.status === "PUBLISHED"
+                      ? "Published"
+                      : "Draft"}
+                  </span>
+                ) : undefined
+              }
+            >
+              {passportsQuery.isPending ? (
+                <p className="text-xs text-muted-foreground">
+                  Checking for an existing passport…
+                </p>
+              ) : passport ? (
+                <div className="space-y-4">
+                  <div className="flex flex-wrap items-center gap-3">
+                    <span
+                      className={cn(
+                        "label-caps rounded-sm px-2 py-1",
+                        passport.impact_verification_status === "VERIFIED"
+                          ? "bg-field text-primary-foreground"
+                          : "bg-amber-100 text-amber-800",
+                      )}
+                    >
+                      Impact:{" "}
+                      {passport.impact_verification_status === "VERIFIED"
+                        ? "Verified"
+                        : "Verification pending"}
+                    </span>
+
+                    {passport.is_demo && (
+                      <span className="label-caps rounded-sm border border-border px-2 py-1 text-muted-foreground">
+                        Demo record
+                      </span>
+                    )}
+                  </div>
+
+                  <div>
+                    <p className="label-caps text-muted-foreground">
+                      Measured impact
+                    </p>
+                    <p className="mt-1 text-sm text-foreground">
+                      {passport.metric_name ?? "Outcome"}:{" "}
+                      {passport.baseline_value ?? "—"}
+                      {passport.unit ? ` ${passport.unit}` : ""} →{" "}
+                      {passport.actual_value ?? "—"}
+                      {passport.unit ? ` ${passport.unit}` : ""}
+                      {passport.improvement_pct !== null &&
+                        ` · ${passport.improvement_pct}% improvement`}
+                    </p>
+                  </div>
+
+                  <div>
+                    <p className="label-caps text-muted-foreground">
+                      Solution
+                    </p>
+                    <p className="mt-1 text-sm leading-relaxed text-foreground">
+                      {passport.solution}
+                    </p>
+                  </div>
+
+                  {passport.technology && (
+                    <div>
+                      <p className="label-caps text-muted-foreground">
+                        Technology
+                      </p>
+                      <p className="mt-1 text-sm text-foreground">
+                        {passport.technology}
+                      </p>
+                    </div>
+                  )}
+
+                  {passport.replication_suitability && (
+                    <div>
+                      <p className="label-caps text-muted-foreground">
+                        Replication suitability
+                      </p>
+                      <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
+                        {passport.replication_suitability}
+                      </p>
+                    </div>
+                  )}
+
+                  {passport.status === "DRAFT" && (
+                    <button
+                      type="button"
+                      disabled={publishPassportMutation.isPending}
+                      onClick={() =>
+                        publishPassportMutation.mutate(passport.id)
+                      }
+                      className="border border-field bg-field px-4 py-2 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-50"
+                    >
+                      {publishPassportMutation.isPending
+                        ? "Publishing…"
+                        : "Publish for replication"}
+                    </button>
+                  )}
+
+                  {publishPassportMutation.isError && (
+                    <p className="text-xs text-destructive">
+                      Unable to publish the passport. Please try again.
+                    </p>
+                  )}
+                </div>
+              ) : (
+                <div>
+                  <p className="text-sm leading-relaxed text-muted-foreground">
+                    Distill this completed project and its measured impact
+                    into a reusable solution document. Published passports
+                    feed replication matching for future challenges.
+                  </p>
+
+                  <button
+                    type="button"
+                    disabled={
+                      passportMutation.isPending ||
+                      !impactQuery.data
+                    }
+                    onClick={() => passportMutation.mutate()}
+                    className="mt-4 border border-saffron bg-saffron px-4 py-2 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {passportMutation.isPending
+                      ? "Generating…"
+                      : "Generate passport"}
+                  </button>
+
+                  {!impactQuery.data && (
+                    <p className="mt-2 text-xs text-muted-foreground">
+                      Record measurable impact first — the passport is built
+                      from the impact ledger.
+                    </p>
+                  )}
+
+                  {passportMutation.isError && (
+                    <p className="mt-2 text-xs text-destructive">
+                      Unable to generate the passport. Please try again.
+                    </p>
+                  )}
+                </div>
+              )}
             </Panel>
           )}
         </div>
